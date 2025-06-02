@@ -1,0 +1,13 @@
+repositories:
+  eclipse-iceoryx/iceoryx:
+    type: git
+    url: https://github.com/eclipse-iceoryx/iceoryx.git
+    version: e693cc28f64273891030a179ffc15fda155b305a
+  iceoryx2:
+    type: git
+    url: https://github.com/eclipse-iceoryx/iceoryx2.git
+    version: v0.5.0
+  rmw_iceoryx2_cxx:
+    type: git
+    url: https://github.com/Ekumen-OS/rmw_iceoryx2_cxx.git 
+    version: flatros2-compatible
