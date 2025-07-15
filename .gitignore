@@ -1,1 +1,4 @@
-*.onnx
+eclipse-iceoryx
+iceoryx2
+rmw_iceoryx2_cxx
+.vscode
