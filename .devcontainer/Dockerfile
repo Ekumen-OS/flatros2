@@ -40,7 +40,7 @@ RUN deluser ubuntu
 
 RUN addgroup --gid 1000 $GROUP \
   && adduser --uid 1000 --ingroup $GROUP --home $HOME --shell /bin/bash --disabled-password --gecos "" $USER \
-  && adduser $USER sudo \
+  && adduser $USER sudo && adduser $USER video \
   && echo "$USER ALL=NOPASSWD: ALL" >> /etc/sudoers.d/$USER
 
 USER $USER:$GROUP

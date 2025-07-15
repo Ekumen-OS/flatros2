@@ -23,4 +23,12 @@
         }
     },
     "remoteUser": "developer",
+    "runArgs": [
+        "--privileged", 
+        "-v", "/dev:/dev",
+        "--net", "host",
+        "-e", "DISPLAY=${localEnv:DISPLAY}",
+        "-e", "XAUTHORITY=/tmp/.Xauthority",
+        "-v", "${localEnv:HOME}/.Xauthority:/tmp/.Xauthority"
+    ]
 }
