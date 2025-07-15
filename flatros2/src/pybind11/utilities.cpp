@@ -1,3 +1,17 @@
+// Copyright 2025 Ekumen, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "utilities.hpp"
 #include "typesupport.hpp"
 
@@ -8,22 +22,6 @@ namespace pybind11 {
 
 rcl_node_t *get_rcl_node(py::object pynode_handle) {
     return reinterpret_cast<rcl_node_t *>(pynode_handle.attr("pointer").cast<size_t>());
-}
-
-py::object wrap_loaned_message(void *loaned_message, py::object pymessage_type) {
-  using namespace py::literals;
-  const flat_message_type_support_t *ts = get_flat_message_type_support(pymessage_type);
-  return pymessage_type("_buffer"_a=py::memoryview::from_memory(loaned_message, ts->message_size));
-}
-
-void *release_loaned_message(py::object pymessage, py::object pymessage_type) {
-  if (!py::isinstance(pymessage, pymessage_type)) {
-    throw std::runtime_error("not a loaned message");
-  }
-  auto pyview = pymessage.attr("_buffer").cast<py::memoryview>();
-  void *loaned_message = PyMemoryView_GET_BUFFER(pyview.ptr())->buf;
-  pyview.attr("release")();
-  return loaned_message;
 }
 
 } // namespace pybind11

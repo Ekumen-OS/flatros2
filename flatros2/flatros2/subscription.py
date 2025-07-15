@@ -1,3 +1,17 @@
+# Copyright 2025 Ekumen, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from types import TracebackType
 from typing import Callable, Generic, Optional, Type, TypeVar, Union
 
@@ -5,9 +19,10 @@ from rclpy.callback_groups import CallbackGroup
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from rclpy.waitable import NumberOfEntities, Waitable
+from rclpy.type_support import check_for_type_support
 from rclpy.impl.implementation_singleton import rclpy_implementation
 
-from .flatros2_pybindings import FlatSubscriptionImpl
+from flatros2.message import Flat
 
 WaitSet = rclpy_implementation.WaitSet
 
@@ -25,6 +40,8 @@ class FlatSubscription(Generic[MessageT], Waitable):
         callback_group: Optional[CallbackGroup] = None,
     ):
         self.node = node
+        if not isinstance(topic_type, Flat):
+            topic_type = Flat(topic_type)
         self.topic_type = topic_type
         if callback_group is None:
             callback_group = self.node.default_callback_group
@@ -35,6 +52,7 @@ class FlatSubscription(Generic[MessageT], Waitable):
         if not isinstance(qos_profile, QoSProfile):
             qos_profile = QoSProfile(depth=qos_profile)
         self.qos_profile = qos_profile
+        from .flatros2_pybindings import FlatSubscriptionImpl
         self.__sub = FlatSubscriptionImpl(
             self.node.handle, self.topic_type, topic_name,
             self.qos_profile.get_c_qos_profile()
@@ -71,11 +89,12 @@ class FlatSubscription(Generic[MessageT], Waitable):
 
     async def execute(self, taken_data: MessageT) -> None:
         """Execute work after data has been taken from a ready wait set."""
-        with self.__sub:
-            try:
-                self.callback(taken_data)
-            finally:
-                return self.__sub.return_loaned_message(taken_data)
+        if taken_data:
+            with self.__sub:
+                try:
+                    self.callback(taken_data)
+                finally:
+                    return self.__sub.return_loaned_message(taken_data)
 
     def get_num_entities(self) -> NumberOfEntities:
         return NumberOfEntities(num_subs=1)

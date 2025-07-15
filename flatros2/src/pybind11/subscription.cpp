@@ -1,3 +1,17 @@
+// Copyright 2025 Ekumen, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "subscription.hpp"
 
 #include "typesupport.hpp"
@@ -61,8 +75,8 @@ py::object FlatSubscriptionImpl::take_loaned_message() {
     return py::none();
   }
   ready_ = false;
-  void *loaned_message = nullptr;
-  rcl_ret_t ret = rcl_take_loaned_message(&rcl_subscription_, &loaned_message, nullptr, nullptr);
+  void * message = nullptr;
+  rcl_ret_t ret = rcl_take_loaned_message(&rcl_subscription_, &message, nullptr, nullptr);
   if (RCL_RET_OK != ret) {
     if (RCL_RET_BAD_ALLOC == ret) {
       throw std::bad_alloc();
@@ -74,12 +88,12 @@ py::object FlatSubscriptionImpl::take_loaned_message() {
       throw std::runtime_error("failed to take loaned message");
     }
   }
-  return wrap_loaned_message(loaned_message, pymessage_type_);
+  return wrap_loaned_message(message, pymessage_type_);
 }
 
 void FlatSubscriptionImpl::return_loaned_message(py::object pymessage) {
-  void *loaned_message = release_loaned_message(pymessage, pymessage_type_);
-  rcl_ret_t ret = rcl_return_loaned_message_from_subscription(&rcl_subscription_, loaned_message);
+  void * message = unwrap_loaned_message(pymessage, pymessage_type_);
+  rcl_ret_t ret = rcl_return_loaned_message_from_subscription(&rcl_subscription_, message);
   if (RCL_RET_OK != ret) {
     throw std::runtime_error("failed to return loaned message");
   }

@@ -12,23 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLAT_ROS2_TYPESUPPORT_HPP
-#define FLAT_ROS2_TYPESUPPORT_HPP
+#ifndef FLAT_ROS2_FLAT_ROS2_HPP
+#define FLAT_ROS2_FLAT_ROS2_HPP
 
-#include <cstddef>
-#include <cstdint>
+#include <flatros2/message.hpp>
+#include <flatros2/publisher.hpp>
+#include <flatros2/subscription.hpp>
+#include <flatros2/typesupport.hpp>
+#include <flatros2/view.hpp>
 
-namespace flatros2 {
-
-typedef struct flat_message_type_support_s {
-  uint8_t *message_image;
-  size_t message_size;
-  void *(*wrap_message)(uint8_t *payload, size_t size, void *type_erased_wrapper, bool copy_on_wrap);
-  uint8_t *(*unwrap_message)(void *type_erased_wrapper, size_t *size, bool keep_wrapper);
-} flat_message_type_support_t;
-
-inline const char typesupport_identifier[] = "flat";
-
-}  // namespace flatros2
-
-#endif // FLAT_ROS2_TYPESUPPORT_HPP
+#endif  // FLAT_ROS2_FLAT_ROS2_HPP

@@ -1,0 +1,26 @@
+// Generate a suitable devcontainer.json for the associated Dockerfile 
+{
+    "name": "Flat ROS 2 devcontainer",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/src,type=bind,consistency=cached",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-vscode.cmake-tools",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "ms-python.flake8",
+                "ms-python.mypy-type-checker",
+                "ms-azuretools.vscode-docker",
+            ]
+        }
+    },
+    "remoteUser": "developer",
+}

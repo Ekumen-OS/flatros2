@@ -14,18 +14,24 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <build_depend>libflatbuffers-dev</build_depend>
+  <build_depend>libopencv-dev</build_depend>
   <build_depend>pybind11_vendor</build_depend>
   <build_depend>python3-dev</build_depend>
 
+  <depend>cv_bridge</depend>
   <depend>rcl</depend>
+  <depend>rclcpp</depend>
   <depend>rmw</depend>
   <depend>rosidl_runtime_c</depend>
+  <depend>rosidl_runtime_cpp</depend>
+  <depend>rosidl_typesupport_introspection_cpp</depend>
 
   <exec_depend>python3-flatbuffers</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>rclpy</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <test_depend>cv_bridge</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

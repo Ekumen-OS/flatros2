@@ -1,3 +1,17 @@
+// Copyright 2025 Ekumen, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "publisher.hpp"
 
 #include "typesupport.hpp"
@@ -55,26 +69,26 @@ std::string FlatPublisherImpl::get_topic_name() const {
 }
 
 py::object FlatPublisherImpl::borrow_loaned_message() {
-  void *loaned_message = nullptr;
+  void * message = nullptr;
   const rosidl_message_type_support_t *ts = get_message_type_support(pymessage_type_);
-  rcl_ret_t ret = rcl_borrow_loaned_message(&rcl_publisher_, ts, &loaned_message);
+  rcl_ret_t ret = rcl_borrow_loaned_message(&rcl_publisher_, ts, &message);
   if (RCL_RET_OK != ret) {
     throw std::runtime_error("failed to borrow message");
   }
-  return wrap_loaned_message(loaned_message, pymessage_type_);
+  return wrap_loaned_message(message, pymessage_type_);
 }
 
 void FlatPublisherImpl::publish_loaned_message(py::object pymessage) {
-  void *loaned_message = release_loaned_message(pymessage, pymessage_type_);
-  rcl_ret_t ret = rcl_publish_loaned_message(&rcl_publisher_, loaned_message, nullptr);
+  void * message = unwrap_loaned_message(pymessage, pymessage_type_);
+  rcl_ret_t ret = rcl_publish_loaned_message(&rcl_publisher_, message, nullptr);
   if (RCL_RET_OK != ret) {
     throw std::runtime_error("failed to publish loaned message");
   }
 }
 
 void FlatPublisherImpl::return_loaned_message(py::object pymessage) {
-  void *loaned_message = release_loaned_message(pymessage, pymessage_type_);
-  rcl_ret_t ret = rcl_return_loaned_message_from_publisher(&rcl_publisher_, loaned_message);
+  void * message = unwrap_loaned_message(pymessage, pymessage_type_);
+  rcl_ret_t ret = rcl_return_loaned_message_from_publisher(&rcl_publisher_, &message);
   if (RCL_RET_OK != ret) {
     throw std::runtime_error("failed to return loaned message");
   }

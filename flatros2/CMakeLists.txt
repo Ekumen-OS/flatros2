@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(flatros2)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 if(NOT CMAKE_C_STANDARD)
@@ -16,8 +16,14 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 
 find_package(rcl REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(rmw REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
+find_package(rosidl_runtime_cpp REQUIRED)
+find_package(rosidl_typesupport_introspection_cpp REQUIRED)
+
+find_package(FlatBuffers REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core objdetect)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
@@ -26,10 +32,15 @@ find_package(pybind11 REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
-add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE
+add_library(${PROJECT_NAME} SHARED src/message.cpp)
+target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+  flatbuffers::flatbuffers rclcpp::rclcpp
+  rosidl_runtime_c::rosidl_runtime_c
+  rosidl_runtime_cpp::rosidl_runtime_cpp
+  rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp)
 
 pybind11_add_module(${PROJECT_NAME}_pybindings
   src/pybind11/module.cpp
@@ -42,6 +53,8 @@ pybind11_add_module(${PROJECT_NAME}_pybindings
 target_link_libraries(${PROJECT_NAME}_pybindings PRIVATE
   ${PROJECT_NAME} rmw::rmw rcl::rcl rosidl_runtime_c::rosidl_runtime_c)
 target_include_directories(${PROJECT_NAME}_pybindings PRIVATE src/pybind11/)
+
+add_subdirectory(examples)
 
 install(
   DIRECTORY include/
@@ -62,6 +75,10 @@ install(TARGETS ${PROJECT_NAME}_pybindings
   DESTINATION "${PYTHON_INSTALL_DIR}/${PROJECT_NAME}")
 
 ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_dependencies(
+  FlatBuffers rclcpp 
+  rosidl_runtime_c rosidl_runtime_cpp
+  rosidl_typesupport_introspection_cpp)
 ament_export_targets(${PROJECT_NAME})
 
 ament_package()
