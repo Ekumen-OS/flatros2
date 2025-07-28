@@ -21,6 +21,7 @@
   <depend>cv_bridge</depend>
   <depend>rcl</depend>
   <depend>rclcpp</depend>
+  <depend>benchmark_msgs</depend>
   <depend>rmw</depend>
   <depend>rosidl_runtime_c</depend>
   <depend>rosidl_runtime_cpp</depend>

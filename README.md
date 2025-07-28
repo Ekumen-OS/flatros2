@@ -43,17 +43,60 @@ The easiest way to get started is by using the provided Visual Studio Code Dev C
 
 3.  When prompted, click on **"Reopen in Container"**. This will build the Docker image specified in `.devcontainer/Dockerfile`, which includes ROS 2 Jazzy and all other necessary dependencies.
 
-4.  Once the container is running and you have a terminal open inside VS Code, build the workspace:
-    ```bash
-    # Make sure to source the ROS 2 environment
-    source /opt/ros/jazzy/setup.bash
+4.  Once the container is running and you have a terminal open inside VS Code, continue with the workspace setup instructions below.
 
-    # Bring source dependencies
-    vcs import src < src/flatros2/iceoryx.repos
+## Workspace Setup Instructions
 
-    # Build the workspace
-    colcon build --symlink-install
-    ```
+To set up the recommended workspace layout for Flatros2 and ROS 2 core development:
+
+### 1. Create Workspaces and Source Folders
+
+```bash
+# Create the main Flatros2 workspace
+mkdir -p ~/flatros_ws/src
+
+# Create a separate workspace for ROS 2 core (optional)
+mkdir -p ~/ros2-core/src
+```
+
+### 2. Import Repositories with vcs
+
+- For the Flatros2 workspace, use the provided `iceoryx.repos` file:
+
+```bash
+cd ~/flatros_ws/src
+vcs import < /workspace/src/iceoryx.repos
+```
+
+- For the ROS 2 core workspace, use the provided `ros2-core.repos` file:
+
+This step is optional! Is just to have the source code be able
+to instrument code and debug better.
+
+```bash
+cd ~/ros2-core/src
+vcs import < /workspace/src/ros2-core.repos
+```
+
+Continue with the build and setup instructions as described below.
+
+---
+
+## Troubleshooting & Setup Tips
+
+If you encounter build or permission errors, try the following:
+
+**Fix permissions so colcon can write logs/builds:**
+
+```bash
+sudo chown -R developer:ekumen .
+```
+
+**Fix missing ACL headers needed by iceoryx:**
+
+```bash
+sudo apt update && sudo apt install -y libacl1-dev
+```
 
 ## Running the Demo
 
@@ -103,8 +146,63 @@ ros2 run flatros2 image_viewer_node.py --ros-args -r image:=image/edges
 You should see the real-time edge-detected video stream pop up in a separate window.
 
 > [!CAUTION]
-> Iceoryx2 is a still very much a work in progress. Signal handling and QoS support may be lacking. 
+> Iceoryx2 is a still very much a work in progress. Signal handling and QoS support may be lacking.
 
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](./LICENSE) file for details.
+
+## Benchmarking Flatros2 Performance
+
+This section describes a benchmarking setup to measure the latency of large messages using Flatros2 with Iceoryx2. It includes a custom publisher and subscriber that communicate using a custom message (`BenchmarkData.msg`).
+
+### Components
+
+- **Publisher (Python):** Sends messages of configurable size either in a sweep (gradually increasing sizes) or for a fixed duration.
+- **Subscriber (C++):** Receives messages and logs latency to a CSV file.
+- **Analyzer (Python):** Reads the latency logs and generates a plot of latency vs. message size.
+
+### Instructions
+
+#### 1. Run the Subscriber
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+./install/flatros2/lib/flatros2/benchmark_sub --duration 5
+```
+
+#### 2. Run the Publisher
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode sweep  # or --mode duration
+```
+
+#### 3. Kill Existing Iceoryx2 State (Recommended)
+
+```bash
+pkill -9 -f 'benchmark_pub|benchmark_sub|ros2'
+sudo rm -f /dev/shm/iox2_*
+sudo rm -rf /tmp/iceoryx2
+```
+
+The subscriber will log latency data to `latency_log.csv`.
+
+#### 4. Analyze Results
+
+Use the provided script to generate a plot and summary statistics:
+
+```bash
+python3 analyze_latency.py
+```
+
+This script:
+- Reads and cleans the latency CSV file
+- Plots latency vs. message size and saves the figure as `latency_vs_size.png`
+- Prints mean, min, max latency for message size ranges
+
+You can find the script in the root directory as `analyze_latency.py`.
