@@ -111,16 +111,22 @@ int main(int argc, char** argv) {
   rclcpp::executors::SingleThreadedExecutor executor;
   executor.add_node(node);
   if (duration_sec > 0) {
+    std::atomic<bool> done{false};
+    std::thread spin_thread([&]() {
+      executor.spin();
+      done = true;
+    });
     auto start = std::chrono::steady_clock::now();
-    while (rclcpp::ok()) {
-      executor.spin_some();
+    while (!done) {
       auto now = std::chrono::steady_clock::now();
       if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= duration_sec) {
         std::cout << "Duration reached, shutting down." << std::endl;
+        executor.cancel();
         break;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    spin_thread.join();
   } else {
     executor.spin();
   }
