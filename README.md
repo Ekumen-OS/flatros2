@@ -154,13 +154,31 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](./LICE
 
 ## Benchmarking Flatros2 Performance
 
-This section describes a benchmarking setup to measure the latency of large messages using Flatros2 with Iceoryx2. It includes a custom publisher and subscriber that communicate using a custom message (`BenchmarkData.msg`).
+This section describes a benchmarking setup to measure the latency of large messages using Flatros2 with Iceoryx2. The setup includes custom publisher and subscriber nodes with flexible CLI options and robust diagnostics, as well as an analysis script for results.
 
 ### Components
 
-- **Publisher (Python):** Sends messages of configurable size either in a sweep (gradually increasing sizes) or for a fixed duration.
-- **Subscriber (C++):** Receives messages and logs latency to a CSV file.
-- **Analyzer (Python):** Reads the latency logs and generates a plot of latency vs. message size.
+- **Publisher (Python, `benchmark_pub.py`):**
+    - Publishes messages of configurable sizes, either sweeping through a range or sending fixed sizes for a set duration.
+    - Supports CLI arguments:
+        - `--sizes`: Comma-separated list of message sizes in bytes (e.g., `--sizes 10,1000,10000`).
+        - `--mode`: `sweep` (vary sizes) or `fixed_size` (single size).
+        - `--duration`: Duration in seconds to send messages (for `fixed_size` mode).
+        - `--period`: Period in milliseconds between messages.
+        - Prints the current message size before publishing in `fixed_size` mode.
+
+- **Subscriber (C++, `benchmark_sub`):**
+    - Receives messages and logs latency to `latency_log.csv`.
+    - Supports CLI arguments:
+        - `--log`: Enable/disable CSV logging.
+        - `--debug`: Enable debug output.
+        - `--duration`/`-d`: Duration in seconds to run.
+        - Prints a clear warning at startup about how to kill the process (since Ctrl+C may not work; use `pkill` as below).
+
+- **Analyzer (Python, `analyze_latency.py`):**
+    - Reads and cleans the latency CSV file.
+    - Plots latency vs. message size and saves the figure as `latency_vs_size.png`.
+    - Prints mean, min, max latency for message size ranges.
 
 ### Instructions
 
@@ -170,8 +188,11 @@ This section describes a benchmarking setup to measure the latency of large mess
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
-./install/flatros2/lib/flatros2/benchmark_sub --duration 5
+./install/flatros2/lib/flatros2/benchmark_sub --duration 5 --log true --debug
 ```
+
+> [!NOTE]
+> At startup, the subscriber prints a warning about how to kill the process. If Ctrl+C does not work, use the `pkill` command below.
 
 #### 2. Run the Publisher
 
@@ -179,8 +200,10 @@ export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
-python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode sweep  # or --mode duration
+python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode sweep --sizes 10,1000,10000 --period 1000
 ```
+
+You can also use `--mode fixed_size --duration 10` to send a fixed size for a set duration.
 
 #### 3. Kill Existing Iceoryx2 State (Recommended)
 

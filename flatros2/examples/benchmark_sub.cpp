@@ -29,36 +29,39 @@ DECLARE_FLAT_PROTOTYPE(benchmark_msgs::msg::BenchmarkData) {
 
 
 // BenchmarkSubscriber node definition
+
 class BenchmarkSubscriber : public rclcpp::Node {
 public:
-  // Constructor: sets up log file and subscription
-  BenchmarkSubscriber()
-  : Node("benchmark_subscriber", rclcpp::NodeOptions().start_parameter_services(false)) {
-    // Open log file for latency results
-    logfile_.open("latency_log.csv");
-    logfile_ << "[START] Program started\n";
-    logfile_ << "size_bytes,latency_ms\n";
-    logfile_.flush();
-
-    // Create flat subscription to benchmark_topic
+  BenchmarkSubscriber(bool log_to_file = true, bool debug = false)
+    : Node("benchmark_subscriber", rclcpp::NodeOptions().start_parameter_services(false)),
+      log_to_file_(log_to_file), debug_(debug)
+  {
+    if (log_to_file_) {
+      logfile_.open("latency_log.csv");
+      logfile_ << "[START] Program started\n";
+      logfile_ << "size_bytes,latency_ms\n";
+      logfile_.flush();
+    }
     sub_ = create_flat_subscription<benchmark_msgs::msg::BenchmarkData>(
       this, "benchmark_topic", 10,
       [this](std::shared_ptr<Flat<benchmark_msgs::msg::BenchmarkData>> msg) {
-        // Callback: compute latency and log to file
         auto now = this->get_clock()->now();
         auto msg_time = rclcpp::Time(msg->header.stamp.sec, msg->header.stamp.nanosec, RCL_ROS_TIME);
         double latency_ms = (now - msg_time).seconds() * 1e3;
-
         auto data_span = static_cast<std::span<uint8_t>>(msg->data);
-        logfile_ << data_span.size() << "," << latency_ms << "\n";
-        logfile_.flush();
-        // RCLCPP_INFO(this->get_logger(), "Received message of size: %zu bytes, latency: %.2f ms", data_span.size(), latency_ms);
+        if (log_to_file_ && logfile_.is_open()) {
+          logfile_ << data_span.size() << "," << latency_ms << "\n";
+          logfile_.flush();
+        }
+        if (debug_) {
+          std::cout << "[DEBUG] Received message of size: " << data_span.size()
+                    << " bytes, latency: " << latency_ms << " ms" << std::endl;
+        }
       });
   }
 
-  // Destructor: closes log file
   ~BenchmarkSubscriber() {
-    if (logfile_.is_open()) {
+    if (log_to_file_ && logfile_.is_open()) {
       logfile_ << "[END] Program exiting\n";
       logfile_.flush();
       logfile_.close();
@@ -66,10 +69,10 @@ public:
   }
 
 private:
-  // Log file for latency results
   std::ofstream logfile_;
-  // Flat subscription handle
   std::shared_ptr<FlatSubscription<benchmark_msgs::msg::BenchmarkData>> sub_;
+  bool log_to_file_;
+  bool debug_;
 };
 
 // Main function: initializes ROS 2, spins node, and shuts down
@@ -79,11 +82,13 @@ void print_help() {
   const char* yellow = "\033[33m";
   const char* cyan = "\033[36m";
   const char* reset = "\033[0m";
-  std::cout << bold << green << "Usage:" << reset << " benchmark_sub [--duration <seconds>] [--help]\n";
+  std::cout << bold << green << "Usage:" << reset << " benchmark_sub [--duration <seconds>] [--log true|false] [--debug] [--help]\n";
   std::cout << yellow << "  --duration, -d <seconds>" << reset << "  Time to run before exiting (default: run until killed)\n";
+  std::cout << yellow << "  --log true|false     " << reset << "  Enable or disable logging to file (default: true)\n";
+  std::cout << yellow << "  --debug              " << reset << "  Print each received message's size and latency to console\n";
   std::cout << yellow << "  --help, -h           " << reset << "  Show this help message\n";
   std::cout << "\n";
-  std::cout << cyan << "This program subscribes to messages and logs latency data to 'latency_log.csv'.\n" << reset;
+  std::cout << cyan << "This program subscribes to messages and logs latency data to 'latency_log.csv' (unless --log false).\n" << reset;
   std::cout << cyan << "You can analyze the latency data using the script 'analyze_latency.py'.\n" << reset;
   std::cout << bold << "Instructions to run the subscriber:" << reset << std::endl;
   std::cout << green << "  ./install/flatros2/lib/flatros2/benchmark_sub --duration 30" << reset << std::endl;
@@ -95,8 +100,16 @@ void print_help() {
   std::cout << "  (or use --mode duration)" << std::endl;
 }
 
+
 int main(int argc, char** argv) {
+  // Warn user about how to kill the program
+  std::cout << "\033[1;31m[WARNING]\033[0m Ctrl+C does not work to stop this program.\n";
+  std::cout << "To kill all benchmark nodes and clean up shared memory, run:\n";
+  std::cout << "  pkill -9 -f 'benchmark_pub|benchmark_sub|ros2'; sudo rm -f /dev/shm/iox2_*; sudo rm -rf /tmp/iceoryx2\n";
+  std::cout << std::endl;
   int duration_sec = -1;
+  bool log_to_file = true;
+  bool debug = false;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--help" || arg == "-h") {
@@ -104,10 +117,16 @@ int main(int argc, char** argv) {
       return 0;
     } else if ((arg == "--duration" || arg == "-d") && i + 1 < argc) {
       duration_sec = std::stoi(argv[++i]);
+    } else if (arg == "--log" && i + 1 < argc) {
+      std::string val = argv[++i];
+      if (val == "false" || val == "0") log_to_file = false;
+      else log_to_file = true;
+    } else if (arg == "--debug") {
+      debug = true;
     }
   }
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<BenchmarkSubscriber>();
+  auto node = std::make_shared<BenchmarkSubscriber>(log_to_file, debug);
   rclcpp::executors::SingleThreadedExecutor executor;
   executor.add_node(node);
   if (duration_sec > 0) {
@@ -140,7 +159,9 @@ int main(int argc, char** argv) {
   const char* reset = "\033[0m";
   std::cout << std::endl;
   std::cout << bold << green << "[Subscriber finished]" << reset << std::endl;
-  std::cout << cyan << "Latency data has been saved to 'latency_log.csv'." << reset << std::endl;
-  std::cout << "You can analyze the results with: " << yellow << "python3 /workspace/analyze_latency.py" << reset << std::endl;
+  if (log_to_file) {
+    std::cout << cyan << "Latency data has been saved to 'latency_log.csv'." << reset << std::endl;
+    std::cout << "You can analyze the results with: " << yellow << "python3 /workspace/analyze_latency.py" << reset << std::endl;
+  }
   return 0;
 }
