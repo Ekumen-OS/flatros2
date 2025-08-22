@@ -11,9 +11,6 @@ from flatros2.publisher import FlatPublisher
 import numpy as np
 import argparse
 
-# Default message sizes for benchmarking (in bytes)
-# SIZES = [10, 100_000, 1_000_000, 4_000_000]  # in bytes
-SIZES = [1_000_000]  # in bytes
 
 
 def generate_sizes_linear(start, stop, step=1):
@@ -50,7 +47,9 @@ class BenchmarkPublisher(Node):
             self.timer = self.create_timer(self.period_ms / 1000.0, self.sweep_send)
         else:
             # Fixed size mode: repeatedly send a fixed size
-            self.sizes = sizes if sizes is not None else SIZES
+            if not sizes:
+                raise ValueError("You must provide --sizes for fixed_size mode.")
+            self.sizes = sizes
             self.index = 0
             self.start_time = self.get_clock().now().seconds_nanoseconds()[0]
             self.publisher = self.make_flat_publisher(self.sizes[self.index])
@@ -81,9 +80,9 @@ class BenchmarkPublisher(Node):
         now = self.get_clock().now().to_msg()
         msg.header.stamp.sec = now.sec
         msg.header.stamp.nanosec = now.nanosec
-        t0 = time.perf_counter()
+        # t0 = time.perf_counter()
         self.publisher.publish_loaned_message(msg)
-        t1 = time.perf_counter()
+        # t1 = time.perf_counter()
         # print(f"{self.GREEN}Published {self.sizes[self.index]} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
 
     def sweep_send(self):
@@ -170,6 +169,9 @@ def main():
             print(f'{BOLD}Error:{RESET} --sizes must be a comma-separated list of positive integers.')
             sys.exit(1)
         mode = 'fixed_size'
+    elif mode == 'fixed_size':
+        print(f'{BOLD}Error:{RESET} --sizes is required for fixed_size mode.')
+        sys.exit(1)
     if duration is not None:
         mode = 'fixed_size'
         if duration <= 0:
