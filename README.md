@@ -200,7 +200,7 @@ export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
-python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode sweep --sizes 10,1000,10000 --period 1000
+python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode fixed_size --sizes 10,1000,10000 --period 1000
 ```
 
 You can also use `--mode fixed_size --duration 10` to send a fixed size for a set duration.

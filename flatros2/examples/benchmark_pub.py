@@ -47,7 +47,7 @@ class BenchmarkPublisher(Node):
             self.sizes = generate_sizes_linear(sweep_start, sweep_stop, sweep_step)
             self.index = 0
             self.publisher = self.make_flat_publisher(self.sizes[self.index])
-            self.timer = self.create_timer(0.01, self.sweep_send)
+            self.timer = self.create_timer(self.period_ms / 1000.0, self.sweep_send)
         else:
             # Fixed size mode: repeatedly send a fixed size
             self.sizes = sizes if sizes is not None else SIZES
@@ -55,7 +55,7 @@ class BenchmarkPublisher(Node):
             self.start_time = self.get_clock().now().seconds_nanoseconds()[0]
             self.publisher = self.make_flat_publisher(self.sizes[self.index])
             print(f"{self.CYAN}🔁 Now sending {self.YELLOW}{self.sizes[self.index]}{self.RESET} bytes")
-            self.timer = self.create_timer(0.01, self.fixed_size_send)
+            self.timer = self.create_timer(self.period_ms / 1000.0, self.fixed_size_send)
 
     def make_flat_publisher(self, size):
         """Create a FlatPublisher for a given message size."""
@@ -81,12 +81,10 @@ class BenchmarkPublisher(Node):
         now = self.get_clock().now().to_msg()
         msg.header.stamp.sec = now.sec
         msg.header.stamp.nanosec = now.nanosec
-        msg.data[:] = np.random.randint(0, 255, self.sizes[self.index], dtype=np.uint8)
         t0 = time.perf_counter()
         self.publisher.publish_loaned_message(msg)
         t1 = time.perf_counter()
         # print(f"{self.GREEN}Published {self.sizes[self.index]} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
-        time.sleep(self.period_ms / 1000.0)
 
     def sweep_send(self):
         """Send one message for each size in the sweep list."""
@@ -106,7 +104,6 @@ class BenchmarkPublisher(Node):
         t1 = time.perf_counter()
         # print(f"{self.GREEN}Published {size} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
         self.index += 1
-        time.sleep(self.period_ms / 1000.0)
 
 def main():
     """
