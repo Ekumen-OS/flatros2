@@ -56,4 +56,5 @@ RUN sudo apt-get update \
   && . /opt/ros/jazzy/setup.sh \
   && rosdep update \
   && rosdep install -i -y --from-path src \
+  --skip-keys=benchmark_msgs \
   && sudo rm -rf /var/lib/apt/lists/*

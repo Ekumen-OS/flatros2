@@ -100,7 +100,7 @@ To analyze CPU usage and bottlenecks during benchmarking, you can generate a CPU
 2. **Start the publisher in another terminal:**
 
         ```bash
-        python3 install/flatros2/lib/flatros2/benchmark_pub.py --duration 60 --period 50 --sizes 2000000
+        python3 install/flatros2/lib/flatros2/benchmark_pub.py --duration 60 --period 10 --sizes 2000000
         ```
 
 3. **Find the process IDs (PIDs) for both processes in a third terminal:**
