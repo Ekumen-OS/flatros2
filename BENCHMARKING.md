@@ -75,3 +75,66 @@ This script:
 - Prints mean, min, max latency for message size ranges
 
 You can find the script in the root directory as `analyze_latency.py`.
+
+
+#### 5. Getting a CPU flamegraph
+
+To analyze CPU usage and bottlenecks during benchmarking, you can generate a CPU flamegraph using Linux's `perf` tool. This is useful for both the publisher and subscriber processes.
+
+> **Note:**
+> For best results, build your workspace with debug symbols enabled. This ensures that the flamegraph will show function names and call stacks correctly.
+>
+> Use the following command to build with debug symbols:
+> ```bash
+> colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
+> ```
+
+**Step-by-step instructions:**
+
+1. **Start the subscriber in one terminal:**
+
+        ```bash
+        ./install/flatros2/lib/flatros2/benchmark_sub -d 60 --log false
+        ```
+
+2. **Start the publisher in another terminal:**
+
+        ```bash
+        python3 install/flatros2/lib/flatros2/benchmark_pub.py --duration 60 --period 50 --sizes 2000000
+        ```
+
+3. **Find the process IDs (PIDs) for both processes in a third terminal:**
+
+        ```bash
+        pgrep -fl benchmark_sub
+        pgrep -fl benchmark_pub.py
+        ```
+        Note the PIDs for use in the next step.
+
+4. **Record a perf trace for either process (replace <PID> with the actual PID):**
+
+        ```bash
+        sudo perf record -F 99 -p <PID> --call-graph dwarf -- sleep 5
+        ```
+        - This will record 5 seconds of profiling data for the selected process.
+        - You can run this for both publisher and subscriber (in separate terminals or sequentially).
+
+5. **Generate a flamegraph:**
+
+        - First, install Flamegraph scripts if you haven't already:
+            ```bash
+            git clone https://github.com/brendangregg/Flamegraph.git
+            export PATH=$PATH:$(pwd)/Flamegraph
+            ```
+        - Then, generate the flamegraph SVG:
+            ```bash
+            sudo perf script | stackcollapse-perf.pl | flamegraph.pl > flamegraph.svg
+            ```
+        - Open `flamegraph.svg` in your browser to explore CPU usage.
+
+**Tips:**
+- You may need to install `perf` and `dwarves` (for DWARF call graph support):
+    ```bash
+    sudo apt update && sudo apt install linux-tools-common linux-tools-$(uname -r) dwarves
+    ```
+- For more details, see: https://www.brendangregg.com/flamegraphs.html
