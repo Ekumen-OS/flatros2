@@ -17,7 +17,6 @@ find_package(ament_cmake_python REQUIRED)
 
 find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(benchmark_msgs REQUIRED)
 find_package(rmw REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_runtime_cpp REQUIRED)
