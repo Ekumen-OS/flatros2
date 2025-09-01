@@ -22,7 +22,7 @@ from flatros2.view import FlatView
 
 from rclpy.type_support import check_for_type_support
 
-def flatten_message(builder: flexbuffers.Builder, message: Any) -> flexbuffers.Builder:
+def flatten_message(builder: flexbuffers.Builder, message: Any, skip_data_length: bool = False) -> flexbuffers.Builder:
     fields = message.__class__.get_fields_and_field_types()
     with builder.Vector():
         for i, (name, typename) in enumerate(fields.items()):
@@ -47,7 +47,10 @@ def flatten_message(builder: flexbuffers.Builder, message: Any) -> flexbuffers.B
                 SEQUENCE_TYPE_PATTERN.fullmatch(typename)
             )) is not None:
                 if m["basetype"] in PRIMITIVE_TYPES:
-                    builder.Blob(np.asarray(value).tobytes())
+                    if not skip_data_length:
+                        builder.Blob(np.asarray(value).tobytes())
+                    else:
+                        builder.Blob(b"")
                 elif m["basetype"] in STRING_TYPES:
                     with builder.Vector():
                         for item in value:
@@ -55,10 +58,18 @@ def flatten_message(builder: flexbuffers.Builder, message: Any) -> flexbuffers.B
                 else:
                     with builder.Vector():
                         for item in value:
-                            flatten_message(builder, item)
+                            flatten_message(builder, item, skip_data_length=skip_data_length)
             else:
-                flatten_message(builder, value)
+                flatten_message(builder, value, skip_data_length=skip_data_length)
     return builder
+
+
+# Helper to generate a reusable schema image (without array length)
+def generate_fixed_schema(prototype: Any) -> bytes:
+    # NOTE: This assumes the message structure is fixed and only array size varies.
+    builder = flexbuffers.Builder()
+    flatten_message(builder, prototype, skip_data_length=True)
+    return builder.Finish()
 
 class Flat(FlatView):
 

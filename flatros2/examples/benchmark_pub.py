@@ -1,16 +1,44 @@
 #!/usr/bin/env python3
 
 # Imports for time, ROS 2, message types, and numpy
+
 import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
 from benchmark_msgs.msg import BenchmarkData
-from flatros2 import Flat
 from flatros2.publisher import FlatPublisher
 import numpy as np
 import argparse
 
+from flatros2.view import FlatView
+from flatros2.message import generate_fixed_schema
+from flatros2.flatros2_pybindings import make_flat_message_type_support
+from rclpy.type_support import check_for_type_support
+
+from std_msgs.msg import Header
+from benchmark_msgs.msg import BenchmarkData
+import numpy as np
+
+# --- Configuration ---
+SWEEP_MAX_SIZE = 2_000_000  # 2MB max sweep size
+
+# --- Generate reusable FlatBuffers schema ---
+print("[Init] Generating reusable FlatBuffers schema with max size...")
+SCHEMA_PROTOTYPE_MSG = BenchmarkData(
+    header=Header(),
+    data=np.zeros(SWEEP_MAX_SIZE, dtype=np.uint8)  # SPreallocate max
+)
+FIXED_SCHEMA_IMAGE = generate_fixed_schema(SCHEMA_PROTOTYPE_MSG)
+check_for_type_support(BenchmarkData)
+_TYPE_SUPPORT = make_flat_message_type_support(BenchmarkData, bytes(FIXED_SCHEMA_IMAGE))
+
+# --- Define FlatView subclass with cached type support ---
+class FixedFlatBenchmarkData(FlatView(BenchmarkData)):
+    pass
+
+FixedFlatBenchmarkData._TYPE_SUPPORT = _TYPE_SUPPORT
+print("[Init] FlatBuffers schema + type support ready")
 
 
 def generate_sizes_linear(start, stop, step=1):
@@ -43,7 +71,13 @@ class BenchmarkPublisher(Node):
             print(f"{self.CYAN}{self.BOLD}Sweep mode:{self.RESET} going to publish messages from {self.YELLOW}{sweep_start}{self.RESET} to {self.YELLOW}{sweep_stop}{self.RESET} bytes with a step of {self.YELLOW}{sweep_step}{self.RESET}.")
             self.sizes = generate_sizes_linear(sweep_start, sweep_stop, sweep_step)
             self.index = 0
-            self.publisher = self.make_flat_publisher(self.sizes[self.index])
+            # Create a single publisher with reusable schema/type
+            self.publisher = FlatPublisher(
+                self,
+                FixedFlatBenchmarkData,  # Not an instance!
+                "benchmark_topic",
+                10
+            )
             self.timer = self.create_timer(self.period_ms / 1000.0, self.sweep_send)
         else:
             # Fixed size mode: repeatedly send a fixed size
@@ -52,14 +86,14 @@ class BenchmarkPublisher(Node):
             self.sizes = sizes
             self.index = 0
             self.start_time = self.get_clock().now().seconds_nanoseconds()[0]
-            self.publisher = self.make_flat_publisher(self.sizes[self.index])
+            self.publisher = FlatPublisher(
+                self,
+                FixedFlatBenchmarkData,  # 👈 Class, not instance!
+                "benchmark_topic",
+                10
+            )
             print(f"{self.CYAN}🔁 Now sending {self.YELLOW}{self.sizes[self.index]}{self.RESET} bytes")
             self.timer = self.create_timer(self.period_ms / 1000.0, self.fixed_size_send)
-
-    def make_flat_publisher(self, size):
-        """Create a FlatPublisher for a given message size."""
-        msg = BenchmarkData(header=Header(), data=np.zeros(size, dtype=np.uint8))
-        return FlatPublisher(self, Flat(msg), 'benchmark_topic', 10)
 
     def fixed_size_send(self):
         """Send messages of a fixed size for a set duration."""
@@ -91,18 +125,20 @@ class BenchmarkPublisher(Node):
             self.get_logger().info(f"{self.GREEN}{self.BOLD}✅ Sweep complete.{self.RESET}")
             rclpy.shutdown()
             return
+
         size = self.sizes[self.index]
-        self.publisher = self.make_flat_publisher(size)
         msg = self.publisher.borrow_loaned_message()
+
+        # Fill only the first `size` bytes
+        msg.data[:size] = np.random.randint(0, 255, size, dtype=np.uint8)
+
         now = self.get_clock().now().to_msg()
         msg.header.stamp.sec = now.sec
         msg.header.stamp.nanosec = now.nanosec
-        msg.data[:] = np.random.randint(0, 255, size, dtype=np.uint8)
-        t0 = time.perf_counter()
+
         self.publisher.publish_loaned_message(msg)
-        t1 = time.perf_counter()
-        # print(f"{self.GREEN}Published {size} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
         self.index += 1
+
 
 def main():
     """
