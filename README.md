@@ -103,9 +103,10 @@ The demo consists of three nodes that form an image processing pipeline:
 
 1.  `image_capture_node.py`: A Python node that captures images from a webcam and publishes them.
 2.  `edge_detector_node`: A C++ node that subscribes to the raw images, performs Canny edge detection using OpenCV, and publishes the resulting image.
-3.  `image_viewer_node.py`: A Python node that subscribes to both the raw and the edge-detected images and displays them using OpenCV.
+3.  `image_viewer_node.py`: A Python node that subscribes to edge detection output and displays them using OpenCV.
+4.  `image_recorder_node`: A C++ node that subscribes to edge detection output and bags it.
 
-To run the demo, open three separate terminals inside the dev container (`Ctrl+Shift+5` or `Terminal > New Terminal`).
+To run the demo, open four separate terminals inside the dev container (`Ctrl+Shift+5` or `Terminal > New Terminal`).
 
 > [!IMPORTANT]
 > The `image_capture_node.py` requires a webcam. If you don't have one, you can modify it to publish a static image instead.
@@ -117,6 +118,7 @@ To run the demo, open three separate terminals inside the dev container (`Ctrl+S
 ```bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+export ROS_DISABLE_LOANED_MESSAGES=0
 ros2 run flatros2 image_capture_node.py --ros-args -r image:=image/raw
 ```
 
@@ -129,6 +131,7 @@ Always the `RMW_IMPLEMENTATION` environment variable to `rmw_iceoryx2_cxx` to en
 ```bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+export ROS_DISABLE_LOANED_MESSAGES=0
 ros2 run flatros2 edge_detector_node --ros-args -r input_image:=image/raw -r output_image:=image/edges
 ```
 
@@ -139,10 +142,22 @@ ros2 run flatros2 edge_detector_node --ros-args -r input_image:=image/raw -r out
 ```bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+export ROS_DISABLE_LOANED_MESSAGES=0
 ros2 run flatros2 image_viewer_node.py --ros-args -r image:=image/edges
 ```
 
-You should see the real-time edge-detected video stream pop up in a separate window.
+---
+
+**Terminal 4: Run the Image Recorder Node**
+
+```bash
+source install/setup.bash
+export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
+export ROS_DISABLE_LOANED_MESSAGES=0
+ros2 run flatros2 image_recorder_node --ros-args -r image:=image/edges
+```
+
+You should see the real-time edge detection as a video stream pop up in a separate window and an `image_bag` be recorded at the current working directory (careful, the bag can grow large quickly).
 
 > [!CAUTION]
 > Iceoryx2 is a still very much a work in progress. Signal handling and QoS support may be lacking.

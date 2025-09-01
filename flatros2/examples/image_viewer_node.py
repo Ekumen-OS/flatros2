@@ -57,8 +57,6 @@ def main(args=None):
         rclpy.spin(ImageViewerNode())
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
-    except Exception as e:
-        input()
     finally:
         rclpy.try_shutdown()
 

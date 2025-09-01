@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -37,7 +39,7 @@ df['size_kb'] = df['size_bytes'] / 1024
 
 # Plot
 plt.figure(figsize=(10,6))
-plt.plot(df['size_kb'], df['latency_ms'], marker='.', linestyle='-', alpha=0.7)
+plt.semilogx(df['size_kb'], df['latency_ms'], marker='.', linestyle='-', alpha=0.7)
 plt.xlabel('Message Size (kB)')
 plt.ylabel('Latency (ms)')
 plt.title('Message Latency vs. Size')
@@ -46,12 +48,12 @@ plt.tight_layout()
 plt.savefig('latency_vs_size.png')
 plt.show()
 
-# Print summary statistics
-print('Latency statistics by message size range (kB):')
-step_kb = 100
-for start_kb in range(0, int(df['size_kb'].max()) + step_kb, step_kb):
-    end_kb = start_kb + step_kb
-    subset = df[(df['size_kb'] >= start_kb) & (df['size_kb'] < end_kb)]
-    if not subset.empty:
-        print(f"{start_kb} - {end_kb} kB: count={len(subset)}, mean={subset['latency_ms'].mean():.3f} ms, min={subset['latency_ms'].min():.3f} ms, max={subset['latency_ms'].max():.3f} ms")
+# # Print summary statistics
+# print('Latency statistics by message size range (kB):')
+# step_kb = 100
+# for start_kb in range(0, int(df['size_kb'].max()) + step_kb, step_kb):
+#     end_kb = start_kb + step_kb
+#     subset = df[(df['size_kb'] >= start_kb) & (df['size_kb'] < end_kb)]
+#     if not subset.empty:
+#         print(f"{start_kb} - {end_kb} kB: count={len(subset)}, mean={subset['latency_ms'].mean():.3f} ms, min={subset['latency_ms'].min():.3f} ms, max={subset['latency_ms'].max():.3f} ms")
 

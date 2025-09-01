@@ -1,6 +1,11 @@
-## Benchmarking Flatros2 Performance
+# Testing Flatros2 performance
 
-This section describes a benchmarking setup to measure the latency of large messages using Flatros2 with Iceoryx2. The setup includes custom publisher and subscriber nodes with flexible CLI options and robust diagnostics, as well as an analysis script for results.
+This package provides a benchmarking setup to measure the latency of large messages using Flatros2 with Iceoryx2. The setup includes custom publisher and subscriber nodes with flexible CLI options and robust diagnostics, as well as an analysis script for results.
+
+> [!IMPORTANT]
+> This is a **very** rough analysis. Take it with a grain of salt.
+
+![Plotting latency vs. message size](.img/latency_vs_size.png)
 
 ### Components
 
@@ -34,7 +39,8 @@ This section describes a benchmarking setup to measure the latency of large mess
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
-./install/flatros2/lib/flatros2/benchmark_sub --duration 5 --log true --debug
+export ROS_DISABLE_LOANED_MESSAGES=0
+ros2 run flatros2_test benchmark_sub --duration 45 --log true
 ```
 
 > [!NOTE]
@@ -46,10 +52,9 @@ export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_iceoryx2_cxx
-python3 install/flatros2/lib/flatros2/benchmark_pub.py --mode fixed_size --sizes 10,1000,10000 --period 1000
+export ROS_DISABLE_LOANED_MESSAGES=0
+ros2 run flatros2_test benchmark_pub.py --mode fixed_size --sizes 1,10,100,1000,10000,100000,1000000,10000000 --duration 5 --period 10
 ```
-
-You can also use `--mode fixed_size --duration 10` to send a fixed size for a set duration.
 
 #### 3. Kill Existing Iceoryx2 State (Recommended)
 
@@ -66,7 +71,7 @@ The subscriber will log latency data to `latency_log.csv`.
 Use the provided script to generate a plot and summary statistics:
 
 ```bash
-python3 analyze_latency.py
+ros2 run flatros2_test analyze_latency.py
 ```
 
 This script:
@@ -94,13 +99,13 @@ To analyze CPU usage and bottlenecks during benchmarking, you can generate a CPU
 1. **Start the subscriber in one terminal:**
 
         ```bash
-        ./install/flatros2/lib/flatros2/benchmark_sub -d 60 --log false
+        ros2 run flatros2_test benchmark_sub -d 60 --log false
         ```
 
 2. **Start the publisher in another terminal:**
 
         ```bash
-        python3 install/flatros2/lib/flatros2/benchmark_pub.py --duration 60 --period 10 --sizes 2000000
+        ros2 run flatros2_test benchmark_pub.py --duration 60 --period 10 --sizes 2000000
         ```
 
 3. **Find the process IDs (PIDs) for both processes in a third terminal:**

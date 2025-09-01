@@ -27,6 +27,7 @@
 #include <flatros2/typesupport.hpp>
 #include <flatros2/view.hpp>
 
+#include <rclcpp/serialized_message.hpp>
 #include <rclcpp/get_message_type_support_handle.hpp>
 #include <rclcpp/is_ros_compatible_type.hpp>
 
@@ -176,6 +177,25 @@ public:
       [this](const std::monostate&) { reset(); }
     }, other.buffer_);
     return *this;
+  }
+
+  operator rcl_serialized_message_t() const {
+    return std::visit(detail::overloaded{
+      [](const auto& buffer) {
+        rcl_serialized_message_t serialized_message;
+        serialized_message.buffer = const_cast<uint8_t *>(buffer.data());
+        serialized_message.buffer_length = buffer.size();
+        serialized_message.buffer_capacity = buffer.size();
+        return serialized_message;
+      },
+      [](const std::monostate&) {
+        rcl_serialized_message_t serialized_message;
+        serialized_message.buffer = nullptr;
+        serialized_message.buffer_length = 0;
+        serialized_message.buffer_capacity = 0;
+        return serialized_message;
+      }
+    }, buffer_);
   }
 
 private:

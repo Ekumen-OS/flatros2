@@ -77,8 +77,10 @@ install(TARGETS ${PROJECT_NAME}_pybindings
 
 ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_dependencies(
-  FlatBuffers rclcpp 
-  rosidl_runtime_c rosidl_runtime_cpp
+  FlatBuffers 
+  rclcpp 
+  rosidl_runtime_c 
+  rosidl_runtime_cpp
   rosidl_typesupport_introspection_cpp)
 ament_export_targets(${PROJECT_NAME})
 

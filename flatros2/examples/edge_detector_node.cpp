@@ -78,7 +78,7 @@ private:
        RCL_ROS_TIME);
     const auto delay = now - message_stamp;
     std::cout << "delay = " << delay.seconds() << std::endl;
-       
+
     cv::Mat rgb_image = getCvMat(*input_message);
 
     cv::Mat gray_image;

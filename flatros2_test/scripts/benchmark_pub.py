@@ -5,7 +5,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
-from benchmark_msgs.msg import BenchmarkData
+from flatros2_test.msg import BenchmarkData
 from flatros2 import Flat
 from flatros2.publisher import FlatPublisher
 import numpy as np
@@ -37,11 +37,12 @@ class BenchmarkPublisher(Node):
         self.period_ms = period_ms
         if mode == "sweep":
             # Sweep mode: test a range of message sizes
-            sweep_start = 1
-            sweep_stop = 2_000_000
-            sweep_step = 20000
-            print(f"{self.CYAN}{self.BOLD}Sweep mode:{self.RESET} going to publish messages from {self.YELLOW}{sweep_start}{self.RESET} to {self.YELLOW}{sweep_stop}{self.RESET} bytes with a step of {self.YELLOW}{sweep_step}{self.RESET}.")
-            self.sizes = generate_sizes_linear(sweep_start, sweep_stop, sweep_step)
+            #sweep_start = 1
+            #sweep_stop = 2_000_000
+            #sweep_step = 20000
+            #print(f"{self.CYAN}{self.BOLD}Sweep mode:{self.RESET} going to publish messages from {self.YELLOW}{sweep_start}{self.RESET} to {self.YELLOW}{sweep_stop}{self.RESET} bytes with a step of {self.YELLOW}{sweep_step}{self.RESET}.")
+            #self.sizes = generate_sizes_linear(sweep_start, sweep_stop, sweep_step)
+            self.sizes = [1, 10, 100, 1000, 10000, 100000, 1_000_000, 10_000_000]
             self.index = 0
             self.publisher = self.make_flat_publisher(self.sizes[self.index])
             self.timer = self.create_timer(self.period_ms / 1000.0, self.sweep_send)
@@ -52,7 +53,7 @@ class BenchmarkPublisher(Node):
             self.sizes = sizes
             self.index = 0
             self.start_time = self.get_clock().now().seconds_nanoseconds()[0]
-            self.publisher = self.make_flat_publisher(self.sizes[self.index])
+            self.__publishers = [self.make_flat_publisher(size) for size in self.sizes]
             print(f"{self.CYAN}🔁 Now sending {self.YELLOW}{self.sizes[self.index]}{self.RESET} bytes")
             self.timer = self.create_timer(self.period_ms / 1000.0, self.fixed_size_send)
 
@@ -71,19 +72,19 @@ class BenchmarkPublisher(Node):
                 rclpy.shutdown()
                 return
             self.current_size = self.sizes[self.index]
-            self.publisher = self.make_flat_publisher(self.current_size)
             self.start_time = now_sec
             self.get_logger().info(f"{self.CYAN}🔁 Now sending {self.YELLOW}{self.current_size}{self.RESET} bytes")
             return
 
-        msg = self.publisher.borrow_loaned_message()
+        publisher = self.__publishers[self.index]
+        msg = publisher.borrow_loaned_message()
         now = self.get_clock().now().to_msg()
         msg.header.stamp.sec = now.sec
         msg.header.stamp.nanosec = now.nanosec
-        # t0 = time.perf_counter()
-        self.publisher.publish_loaned_message(msg)
-        # t1 = time.perf_counter()
-        # print(f"{self.GREEN}Published {self.sizes[self.index]} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
+        t0 = time.perf_counter()
+        publisher.publish_loaned_message(msg)
+        t1 = time.perf_counter()
+        print(f"{self.GREEN}Published {self.sizes[self.index]} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
 
     def sweep_send(self):
         """Send one message for each size in the sweep list."""
@@ -101,7 +102,7 @@ class BenchmarkPublisher(Node):
         t0 = time.perf_counter()
         self.publisher.publish_loaned_message(msg)
         t1 = time.perf_counter()
-        # print(f"{self.GREEN}Published {size} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
+        print(f"{self.GREEN}Published {size} bytes in {self.YELLOW}{1e3*(t1 - t0):.2f}{self.RESET} ms")
         self.index += 1
 
 def main():
@@ -142,7 +143,7 @@ def main():
             f'    {CYAN}./install/flatros2/lib/flatros2/benchmark_sub --duration 30{RESET}\n'
             f'\n'
             f'{BOLD}{YELLOW}Analysis:{RESET}\n'
-            f'  Analyze results with: {CYAN}python3 /workspace/analyze_latency.py{RESET}\n'
+            f'  Analyze results with: {CYAN}ros2 run flatros2_test analyze_latency.py{RESET}\n'
         )
     )
     parser.add_argument('--mode', choices=['fixed_size', 'sweep'], default='sweep',
@@ -183,7 +184,7 @@ def main():
         print(f'{YELLOW}No arguments passed. Defaulting to sweep mode.{RESET}')
     rclpy.init()
     try:
-        rclpy.spin(BenchmarkPublisher(mode=mode, duration=duration, sizes=sizes, period_ms=period_ms))
+        rclpy.spin(BenchmarkPublisher(mode=args.mode, duration=duration, sizes=sizes, period_ms=period_ms))
     except KeyboardInterrupt:
         print(f"{YELLOW}Interrupted by user. Exiting...{RESET}")
     finally:
