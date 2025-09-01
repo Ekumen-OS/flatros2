@@ -464,6 +464,8 @@ public:
     return reinterpret_cast<const T *>(blob_.data()); 
   }
 
+  size_t size() const { return count_; }
+
   operator std::span<T, N>() { 
     if (ref_.IsNull()) {
       throw std::runtime_error("void view");
@@ -516,6 +518,8 @@ public:
     item_views_ = std::move(item_views);
     ref_ = ref;
   }
+
+  size_t size() const { return item_views_.size(); }
 
   operator std::span<FlatView<T>, N>() {
     if (ref_.IsNull()) {

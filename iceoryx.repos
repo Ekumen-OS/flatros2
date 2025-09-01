@@ -1,4 +1,5 @@
 repositories:
+  # Iceoryx-related
   eclipse-iceoryx/iceoryx:
     type: git
     url: https://github.com/eclipse-iceoryx/iceoryx.git
@@ -9,5 +10,5 @@ repositories:
     version: v0.5.0
   rmw_iceoryx2_cxx:
     type: git
-    url: https://github.com/Ekumen-OS/rmw_iceoryx2.git 
+    url: https://github.com/Ekumen-OS/rmw_iceoryx2.git
     version: flatros2-compatible

@@ -1,0 +1,26 @@
+repositories:
+  # ROS 2 Jazzy repos to modify the source code (optional!)
+  rcl:
+    type: git
+    url: https://github.com/ros2/rcl.git
+    version: jazzy
+  rclcpp:
+    type: git
+    url: https://github.com/ros2/rclcpp.git
+    version: jazzy
+  rclpy:
+    type: git
+    url: https://github.com/ros2/rclpy.git
+    version: jazzy
+  rcutils:
+    type: git
+    url: https://github.com/ros2/rcutils.git
+    version: jazzy
+  rmw:
+    type: git
+    url: https://github.com/ros2/rmw.git
+    version: jazzy
+  rmw_implementation:
+    type: git
+    url: https://github.com/ros2/rmw_implementation.git
+    version: jazzy

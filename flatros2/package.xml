@@ -3,10 +3,10 @@
 <package format="2">
   <name>flatros2</name>
   <version>0.1.0</version>
-
+  
   <description>An experiment on message in-memory representations for ROS 2.</description>
 
-  <maintainer email="michel@ekumenlabs.com">Michel Hidalgo</maintainer>
+  <maintainer email="michel.hidalgo@ekumenlabs.com">Michel Hidalgo</maintainer>
 
   <license>Apache License 2.0</license>
 
@@ -25,6 +25,9 @@
   <depend>rosidl_runtime_c</depend>
   <depend>rosidl_runtime_cpp</depend>
   <depend>rosidl_typesupport_introspection_cpp</depend>
+  <depend>rosbag2_cpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
 
   <exec_depend>python3-flatbuffers</exec_depend>
   <exec_depend>python3-opencv</exec_depend>

@@ -1,15 +1,15 @@
 FROM osrf/ros:jazzy-desktop AS cacher
 
-WORKDIR /ws/src
+WORKDIR /workspace/src
 
 COPY iceoryx.repos .
 RUN vcs import < iceoryx.repos
 
 COPY flatros2 .
 
-RUN mkdir -p /tmp/ws/src \
-  && find ./ -not -path '*/iceoryx_integrationtest/*' -name "package.xml" | \
-     xargs cp --parents -t /tmp/ws/src \
+RUN mkdir -p /workspace/cached \
+  && find . -name "package.xml" | \
+     xargs cp --parents -t /workspace/cached \
   || true
 
 FROM osrf/ros:jazzy-desktop AS builder
@@ -41,15 +41,16 @@ RUN deluser ubuntu
 RUN addgroup --gid 1000 $GROUP \
   && adduser --uid 1000 --ingroup $GROUP --home $HOME --shell /bin/bash --disabled-password --gecos "" $USER \
   && adduser $USER sudo && adduser $USER video \
+  && mkdir -p /workspace && chown $USER:$GROUP /workspace \ 
   && echo "$USER ALL=NOPASSWD: ALL" >> /etc/sudoers.d/$USER
 
 USER $USER:$GROUP
+WORKDIR /workspace
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 
-WORKDIR /ws
-COPY --from=cacher /tmp/ws/ .
+COPY --from=cacher /workspace/cached/ src/
 
 RUN sudo apt-get update \
   && sudo apt-get -y dist-upgrade \
